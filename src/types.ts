@@ -34,8 +34,9 @@ export enum SignerStore {
 }
 
 export interface Key {
+    user: string,
     rawResponse: RegistrationResponseJSON,
     keyId: Buffer,
     keyIdBase64: string,
-    publicKey: Buffer
+    publicKey: Buffer,
 }

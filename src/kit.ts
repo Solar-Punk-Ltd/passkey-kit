@@ -60,10 +60,8 @@ export class PasskeyKit extends PasskeyBase {
         this.WebAuthn = WebAuthn || { startRegistration, startAuthentication }
     }
 
-    public async createWallet(app: string, user: string, key?: Key) {
-        if(!key) {
-            key = await this.createKey(app, user)
-        }
+    public async createWallet(key: Key) {
+        if(!key) throw new Error('Key is required')
 
         const at = await PasskeyClient.deploy(
             {
@@ -102,6 +100,7 @@ export class PasskeyKit extends PasskeyBase {
 
         return {
             rawResponse: key.rawResponse,
+            user: key.user,
             keyId: key.keyId,
             keyIdBase64: key.keyIdBase64,
             contractId,
@@ -148,6 +147,7 @@ export class PasskeyKit extends PasskeyBase {
 
         return {
             rawResponse,
+            user,
             keyId: base64url.toBuffer(id),
             keyIdBase64: id,
             publicKey: await this.getPublicKey(response),
