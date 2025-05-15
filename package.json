@@ -1,8 +1,8 @@
 {
-  "name": "passkey-kit",
-  "version": "0.10.24",
+  "name": "@solarpunkltd/passkey-kit",
+  "version": "0.0.1",
   "description": "A helper library for creating and using smart wallet accounts on the Stellar blockchain.",
-  "author": "Tyler van der Hoeven",
+  "author": "solarpunkltd",
   "license": "MIT",
   "type": "module",
   "main": "src/index.ts",

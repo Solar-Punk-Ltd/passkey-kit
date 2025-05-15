@@ -4,10 +4,23 @@ import type { AuthenticationResponseJSON, AuthenticatorAttestationResponseJSON, 
 import { startRegistration, startAuthentication } from "@simplewebauthn/browser"
 import { Buffer } from 'buffer'
 import base64url from 'base64url'
-import type { SignerKey, SignerLimits, SignerStore } from './types'
+import type { Key, SignerKey, SignerLimits, SignerStore } from './types'
 import { PasskeyBase } from './base'
 import { AssembledTransaction, basicNodeSigner, type AssembledTransactionOptions, type Tx } from '@stellar/stellar-sdk/minimal/contract'
 import type { Server } from '@stellar/stellar-sdk/minimal/rpc'
+
+export interface PasskeyKitOptions {
+        rpcUrl: string,
+        networkPassphrase: string,
+        walletWasmHash: string,
+        challenge?: string,
+        seed?: string,
+        timeoutInSeconds?: number,
+        WebAuthn?: {
+            startRegistration: typeof startRegistration,
+            startAuthentication: typeof startAuthentication
+        }
+}
 
 export class PasskeyKit extends PasskeyBase {
     declare rpc: Server
@@ -21,48 +34,44 @@ export class PasskeyKit extends PasskeyBase {
         startRegistration: typeof startRegistration,
         startAuthentication: typeof startAuthentication
     }
+    private challenge: string
 
     public keyId: string | undefined
     public networkPassphrase: string
     public wallet: PasskeyClient | undefined
 
-    constructor(options: {
-        rpcUrl: string,
-        networkPassphrase: string,
-        walletWasmHash: string,
-        timeoutInSeconds?: number,
-        WebAuthn?: {
-            startRegistration: typeof startRegistration,
-            startAuthentication: typeof startAuthentication
-        }
-    }) {
+    constructor(options: PasskeyKitOptions)
+{
         const { rpcUrl, networkPassphrase, walletWasmHash, WebAuthn } = options
 
         super(rpcUrl)
 
+        this.challenge = base64url(options.challenge || 'stellaristhebetterblockchain')
         this.networkPassphrase = networkPassphrase
         // this account exists as the seed source for deploying new wallets
         // not using the genesis wallet as on mainnet the account has no usable signers
         // there's a chance this isn't the best move and should instead be a constructor variable
         // alternatively when we create a new wallet we shouldn't inherit the source as the auth entry signer
         // Keypair.fromRawEd25519Seed(hash(Buffer.from(this.networkPassphrase)))
-        this.walletKeypair = Keypair.fromRawEd25519Seed(hash(Buffer.from('kalepail')));
+        this.walletKeypair = Keypair.fromRawEd25519Seed(hash(Buffer.from(options.seed || 'kalepail')));
         this.walletPublicKey = this.walletKeypair.publicKey()
         this.walletWasmHash = walletWasmHash
         this.timeoutInSeconds = options.timeoutInSeconds || 30 // Launchtube requires <= 30 second timeout so let's default to that
         this.WebAuthn = WebAuthn || { startRegistration, startAuthentication }
     }
 
-    public async createWallet(app: string, user: string) {
-        const { rawResponse, keyId, keyIdBase64, publicKey } = await this.createKey(app, user)
+    public async createWallet(app: string, user: string, key?: Key) {
+        if(!key) {
+            key = await this.createKey(app, user)
+        }
 
         const at = await PasskeyClient.deploy(
             {
                 signer: {
                     tag: 'Secp256r1',
                     values: [
-                        keyId,
-                        publicKey,
+                        key.keyId,
+                        key.publicKey,
                         [undefined],
                         [undefined],
                         { tag: 'Persistent', values: undefined },
@@ -74,7 +83,7 @@ export class PasskeyKit extends PasskeyBase {
                 wasmHash: this.walletWasmHash,
                 networkPassphrase: this.networkPassphrase,
                 publicKey: this.walletPublicKey,
-                salt: hash(keyId),
+                salt: hash(key.keyId),
                 timeoutInSeconds: this.timeoutInSeconds,
             }
         )
@@ -92,9 +101,9 @@ export class PasskeyKit extends PasskeyBase {
         })
 
         return {
-            rawResponse,
-            keyId,
-            keyIdBase64,
+            rawResponse: key.rawResponse,
+            keyId: key.keyId,
+            keyIdBase64: key.keyIdBase64,
             contractId,
             signedTx: at.signed!
         }
@@ -103,7 +112,7 @@ export class PasskeyKit extends PasskeyBase {
     public async createKey(app: string, user: string, settings?: {
         rpId?: string
         authenticatorSelection?: AuthenticatorSelectionCriteria
-    }) {
+    }): Promise<Key> {
         const now = new Date()
         const displayName = `${user} — ${now.toLocaleString()}`
         const { rpId, authenticatorSelection = {
@@ -118,7 +127,7 @@ export class PasskeyKit extends PasskeyBase {
 
         const rawResponse = await this.WebAuthn.startRegistration({
             optionsJSON: {
-                challenge: base64url("stellaristhebetterblockchain"),
+                challenge: this.challenge,
                 rp: {
                     id: rpId,
                     name: app,
@@ -160,7 +169,7 @@ export class PasskeyKit extends PasskeyBase {
         if (!keyId) {
             rawResponse = await this.WebAuthn.startAuthentication({
                 optionsJSON: {
-                    challenge: base64url("stellaristhebetterblockchain"),
+                    challenge: this.challenge,
                     rpId,
                     userVerification: "preferred",
                 }
@@ -528,7 +537,7 @@ export class PasskeyKit extends PasskeyBase {
         });
     }
 
-    /* LATER 
+    /* LATER
         - Add a getKeyInfo action to get info about a specific passkey
             Specifically looking for name, type, etc. data so a user could grok what signer mapped to what passkey
     */

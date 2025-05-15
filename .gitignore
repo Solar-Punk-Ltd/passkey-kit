@@ -12,6 +12,8 @@ lerna-debug.log*
 
 # Caches
 
+.vscode/
+
 .cache
 
 # Diagnostic reports (https://nodejs.org/api/report.html)

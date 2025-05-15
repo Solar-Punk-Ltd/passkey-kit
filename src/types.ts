@@ -1,11 +1,13 @@
+import type { RegistrationResponseJSON } from "@simplewebauthn/types"
+
 export type Signer = {
     kind: string
-    key: string 
-    val: string 
+    key: string
+    val: string
     expiration: number | null
     storage: "Persistent" | "Temporary"
     limits: string
-    evicted?: boolean 
+    evicted?: boolean
 }
 
 export class SignerKey {
@@ -29,4 +31,11 @@ export type SignerLimits = Map<string, SignerKey[] | undefined> | undefined
 export enum SignerStore {
     Persistent = 'Persistent',
     Temporary = 'Temporary',
+}
+
+export interface Key {
+    rawResponse: RegistrationResponseJSON,
+    keyId: Buffer,
+    keyIdBase64: string,
+    publicKey: Buffer
 }
