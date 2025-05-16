@@ -176,7 +176,7 @@ export class PasskeyKit extends PasskeyBase {
       // Consider putting this somewhere else??
       walletPublicKey?: string;
     },
-  ): Promise<boolean> {
+  ): Promise<string | null> {
     let { getContractId, walletPublicKey } = opts || {};
     let keyIdBuffer: Buffer;
 
@@ -204,7 +204,7 @@ export class PasskeyKit extends PasskeyBase {
     }
 
     if (!contractId) {
-      return false;
+      return null;
     }
 
     this.wallet = new PasskeyClient({
@@ -213,7 +213,7 @@ export class PasskeyKit extends PasskeyBase {
       networkPassphrase: this.networkPassphrase,
     });
 
-    return true;
+    return contractId;
   }
 
   public async signAuthEntry(
