@@ -1,6 +1,6 @@
 {
   "name": "@solarpunkltd/passkey-kit",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A helper library for creating and using smart wallet accounts on the Stellar blockchain.",
   "author": "solarpunkltd",
   "license": "MIT",
@@ -28,7 +28,8 @@
   "devDependencies": {
     "@simplewebauthn/types": "^12.0.0",
     "@types/node": "^22.15.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "prettier": "^2.8.8"
   },
   "pnpm": {
     "overrides": {
